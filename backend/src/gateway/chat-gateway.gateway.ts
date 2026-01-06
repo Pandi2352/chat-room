@@ -39,6 +39,7 @@ export class ChatGatewayGateway
 
       const payload = this.jwtService.verify(token, { secret: this.configService.get<string>('JWT_SECRET') });
       client.data.userId = payload.sub; // payload.sub is userId from login
+      client.join(payload.sub); // Join personal room for 1-on-1 signaling
 
       await this.usersService.updateStatus(payload.sub, 'online');
       this.server.emit('user_status', { userId: payload.sub, status: 'online' });
@@ -89,5 +90,31 @@ export class ChatGatewayGateway
     await this.messagesService.markAsRead(payload.roomId, userId);
     // Emit to everyone in the room (including sender) to update tick status
     this.server.to(payload.roomId).emit('messages_read', { roomId: payload.roomId, readBy: userId });
+  }
+
+  // --- WebRTC Signaling ---
+
+  @SubscribeMessage('call_user')
+  handleCallUser(client: Socket, data: { userToCall: string; signalData: any; from: string, name: string }) {
+    this.server.to(data.userToCall).emit('call_incoming', {
+      signal: data.signalData,
+      from: data.from,
+      name: data.name
+    });
+  }
+
+  @SubscribeMessage('answer_call')
+  handleAnswerCall(client: Socket, data: { to: string; signal: any }) {
+    this.server.to(data.to).emit('call_accepted', data.signal);
+  }
+
+  @SubscribeMessage('ice_candidate')
+  handleIceCandidate(client: Socket, data: { to: string; candidate: any }) {
+    this.server.to(data.to).emit('ice_candidate', data.candidate);
+  }
+
+  @SubscribeMessage('end_call')
+  handleEndCall(client: Socket, data: { to: string }) {
+    this.server.to(data.to).emit('call_ended');
   }
 }

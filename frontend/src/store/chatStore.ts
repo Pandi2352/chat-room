@@ -37,6 +37,15 @@ interface ChatState {
     joinRoom: (roomId: string) => void;
     sendTyping: (isTyping: boolean) => void;
     markAsRead: (roomId: string) => void;
+    // Video Call
+    callData: { isReceivingCall: boolean; from: string; name: string; signal: any } | null;
+    callAccepted: boolean;
+    setCallData: (data: any) => void;
+    setCallAccepted: (val: boolean) => void;
+    emitCallUser: (data: any) => void;
+    emitAnswerCall: (data: any) => void;
+    emitIceCandidate: (data: any) => void;
+    emitEndCall: (data: any) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -125,6 +134,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     messages: state.messages.map(m => ({ ...m, status: 'read' as const })) // Using 'as const' to satisfy union type if strict
                 }));
             }
+        });
+
+        socket.on('call_incoming', (data) => {
+            set({ callData: { isReceivingCall: true, from: data.from, name: data.name, signal: data.signal } });
+        });
+
+        socket.on('call_ended', () => {
+            set({ callData: null, callAccepted: false });
         });
 
         set({ socket });
@@ -221,5 +238,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { socket } = get();
         if (!socket) return;
         socket.emit('mark_read', { roomId });
-    }
+    },
+
+    // --- Video Call State ---
+    callData: null,
+    callAccepted: false,
+    setCallData: (data) => set({ callData: data }),
+    setCallAccepted: (val) => set({ callAccepted: val }),
+
+    // Simple signaling helpers for components to use
+    emitCallUser: (data) => get().socket?.emit('call_user', data),
+    emitAnswerCall: (data) => get().socket?.emit('answer_call', data),
+    emitIceCandidate: (data) => get().socket?.emit('ice_candidate', data),
+    emitEndCall: (data) => get().socket?.emit('end_call', data),
 }));

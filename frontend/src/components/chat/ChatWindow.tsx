@@ -19,12 +19,13 @@ interface ChatWindowProps {
     typingUsers: Set<string>;
     onlineUsers: Set<string>;
     onToggleProfile: () => void;
+    onVideoCall: () => void;
 }
 
 export default function ChatWindow({ 
     activeRoom, user, messages, msgInput, setMsgInput, 
     sendMessage, sendTyping, uploadFile, isUploading, 
-    typingUsers, onlineUsers, onToggleProfile 
+    typingUsers, onlineUsers, onToggleProfile, onVideoCall 
 }: ChatWindowProps) {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -128,7 +129,7 @@ export default function ChatWindow({
                 <div className="flex items-center gap-1 text-slate-400">
                     <button className="p-2.5 rounded-xl hover:bg-slate-100/80 hover:text-indigo-600 transition-all active:scale-95"><Search size={20} strokeWidth={2} /></button>
                     <button className="p-2.5 rounded-xl hover:bg-slate-100/80 hover:text-indigo-600 transition-all active:scale-95"><Phone size={20} strokeWidth={2} /></button>
-                    <button className="p-2.5 rounded-xl hover:bg-slate-100/80 hover:text-indigo-600 transition-all active:scale-95"><Video size={20} strokeWidth={2} /></button>
+                    <button onClick={onVideoCall} className="p-2.5 rounded-xl hover:bg-slate-100/80 hover:text-indigo-600 transition-all active:scale-95"><Video size={20} strokeWidth={2} /></button>
                     <div className="w-px h-6 bg-slate-200 mx-1"></div>
                     <button onClick={onToggleProfile} className="p-2.5 rounded-xl hover:bg-slate-100/80 hover:text-indigo-600 transition-all active:scale-95">
                         <MoreVertical size={20} strokeWidth={2} />

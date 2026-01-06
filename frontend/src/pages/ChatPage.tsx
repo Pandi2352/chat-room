@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import apiClient from '../lib/apiClient';
+import { getOtherParticipant } from '../lib/chatUtils';
 
 // Components
 import ChatSidebar from '../components/chat/ChatSidebar';
 import ChatWindow from '../components/chat/ChatWindow';
 import ProfilePanel from '../components/profile/ProfilePanel';
 import EditProfileModal from '../components/profile/EditProfileModal';
+import VideoCall from '../components/chat/VideoCall';
 
 export default function ChatPage() {
   const { 
@@ -15,7 +17,8 @@ export default function ChatPage() {
     fetchRooms, rooms, 
     activeRoom, setActiveRoom, 
     messages, sendMessage,
-    sendTyping, typingUsers, onlineUsers, uploadFile, isUploading, markAsRead
+    sendTyping, typingUsers, onlineUsers, uploadFile, isUploading, markAsRead,
+    setCallData
   } = useChatStore();
   
   const { user, logout, updateUser } = useAuthStore();
@@ -24,7 +27,7 @@ export default function ChatPage() {
   const [msgInput, setMsgInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [showProfile, setShowProfile] = useState(false); // Default hidden on start for cleaner look? Or match prev behavior
+  const [showProfile, setShowProfile] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   useEffect(() => {
@@ -76,8 +79,20 @@ export default function ChatPage() {
           updateUser(res.data);
       } catch (err) {
           console.error("Failed to update profile", err);
-          alert("Failed to update profile"); // Could use a toast here later
+          alert("Failed to update profile");
       }
+  };
+
+  const handleVideoCall = () => {
+       if (!activeRoom || !user) return;
+       const other = getOtherParticipant(activeRoom, user._id);
+       if (other) {
+           setCallData({ 
+               isReceivingCall: false, 
+               userToCall: other._id, 
+               name: other.displayName || 'User' 
+           });
+       }
   };
 
   return (
@@ -113,9 +128,10 @@ export default function ChatPage() {
           typingUsers={typingUsers}
           onlineUsers={onlineUsers}
           onToggleProfile={() => setShowProfile(!showProfile)}
+          onVideoCall={handleVideoCall}
         />
 
-        {/* Right Information Panel (Overlay or Side-by-side depending on pref, here Side-by-side) */}
+        {/* Right Information Panel */}
         {showProfile && activeRoom && (
             <ProfilePanel 
                 isOpen={showProfile}
@@ -127,6 +143,7 @@ export default function ChatPage() {
       </div>
 
       {/* Modals */}
+      <VideoCall />
       <EditProfileModal 
         isOpen={isEditingProfile}
         onClose={() => setIsEditingProfile(false)}
