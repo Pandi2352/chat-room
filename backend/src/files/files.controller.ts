@@ -1,6 +1,6 @@
 import { Controller, Post, UploadedFile, UseInterceptors, Get, Param, Res, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { join } from 'path';
 import { AuthGuard } from '@nestjs/passport';
 

@@ -16,6 +16,7 @@ import { FilesModule } from './files/files.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -32,6 +33,6 @@ import { FilesModule } from './files/files.module';
     FilesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, ChatGatewayGateway],
+  providers: [AppService],
 })
 export class AppModule { }

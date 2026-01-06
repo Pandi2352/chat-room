@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatGatewayGateway } from './chat-gateway.gateway';
 import { MessagesModule } from '../messages/messages.module';
 import { UsersModule } from '../users/users.module';
@@ -8,9 +9,13 @@ import { JwtModule } from '@nestjs/jwt';
     imports: [
         MessagesModule,
         UsersModule,
-        JwtModule.register({
-            secret: 'SECRET_KEY_HERE', // TODO: Use env var
-            signOptions: { expiresIn: '1h' },
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: { expiresIn: '1h' },
+            }),
+            inject: [ConfigService],
         }),
     ],
     providers: [ChatGatewayGateway],
