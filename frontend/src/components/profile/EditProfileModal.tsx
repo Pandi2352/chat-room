@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Upload, Loader2 } from 'lucide-react'; // Added icons
 import apiClient from '../../lib/apiClient';
 
