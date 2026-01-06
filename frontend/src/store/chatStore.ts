@@ -201,7 +201,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             const { path } = res.data;
-            const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${path}`;
+            const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+            const fullUrl = `${baseUrl}${path}`;
             get().sendMessage(fullUrl, 'image');
         } catch (error) {
             console.error('File upload failed', error);

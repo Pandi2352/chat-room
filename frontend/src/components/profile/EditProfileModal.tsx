@@ -59,7 +59,9 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
             });
             // Construct full URL if response is relative path, or use as is if logic handles it
             // Backend seems to return { path: '/uploads/...' }
-            const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${res.data.path}`;
+            // Construct full URL, avoiding double slashes
+            const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+            const fullUrl = `${baseUrl}${res.data.path}`;
             setFormData(prev => ({ ...prev, avatarUrl: fullUrl }));
         } catch (error) {
             console.error('Upload failed', error);
