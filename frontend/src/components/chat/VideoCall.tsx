@@ -19,6 +19,7 @@ export default function VideoCall() {
     const user = useAuthStore(s => s.user);
 
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [callEnded, setCallEnded] = useState(false);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isVideoOn, setIsVideoOn] = useState(true);
@@ -26,6 +27,13 @@ export default function VideoCall() {
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
     const connectionRef = useRef<RTCPeerConnection | null>(null);
+
+    // Sync remote stream to video element when it mounts
+    useEffect(() => {
+        if (userVideo.current && remoteStream) {
+            userVideo.current.srcObject = remoteStream;
+        }
+    }, [remoteStream, callAccepted]);
 
     // Bootstrap local stream
     useEffect(() => {
@@ -44,9 +52,7 @@ export default function VideoCall() {
             });
 
         return () => {
-            // Cleanup stream
-            // stream?.getTracks().forEach(track => track.stop()); // Don't stop immediately if we want to toggle? 
-            // Better to stop on Unmount of the component
+            // Cleanup provided by general cleanup effect
         };
     }, [callData, callAccepted]);
 
@@ -62,7 +68,6 @@ export default function VideoCall() {
                 connectionRef.current.addIceCandidate(new RTCIceCandidate(candidate))
                     .catch(e => console.error("Error adding ice candidate", e));
             } else {
-                // Queue candidate if peer not ready or remote desc not set
                 iceCandidatesQueue.current.push(candidate);
             }
         };
@@ -73,7 +78,6 @@ export default function VideoCall() {
              if (peer) {
                  peer.setRemoteDescription(new RTCSessionDescription(signal))
                     .then(() => {
-                        // Flush queue
                         iceCandidatesQueue.current.forEach(c => {
                             peer.addIceCandidate(new RTCIceCandidate(c)).catch(e => console.error(e));
                         });
@@ -110,7 +114,8 @@ export default function VideoCall() {
         };
 
         peer.ontrack = (event) => {
-             if (userVideo.current) userVideo.current.srcObject = event.streams[0];
+             console.log("Track received (Caller)", event.streams[0]);
+             setRemoteStream(event.streams[0]);
         };
 
         peer.createOffer()
@@ -140,7 +145,6 @@ export default function VideoCall() {
 
         // Add Tracks
         stream.getTracks().forEach(track => {
-            console.log("Adding track (Receiver)", track.kind);
             peer.addTrack(track, stream);
         });
 
@@ -152,15 +156,12 @@ export default function VideoCall() {
 
         peer.ontrack = (event) => {
             console.log("Track received (Receiver)", event.streams[0]);
-            if (userVideo.current) {
-                userVideo.current.srcObject = event.streams[0];
-            }
+            setRemoteStream(event.streams[0]);
         };
 
         // Chain the negotiation
         peer.setRemoteDescription(new RTCSessionDescription(callData?.signal))
             .then(() => {
-                // Process queued candidates
                 iceCandidatesQueue.current.forEach(c => {
                     peer.addIceCandidate(new RTCIceCandidate(c)).catch(e => console.error(e));
                 });
@@ -176,12 +177,12 @@ export default function VideoCall() {
     
     // Cleanup
     useEffect(() => {
-        // If external close
         if (!callData && !callAccepted) {
             connectionRef.current?.close();
             connectionRef.current = null;
             stream?.getTracks().forEach(track => track.stop());
             setStream(null);
+            setRemoteStream(null);
         }
     }, [callData, callAccepted]);
 
@@ -191,11 +192,10 @@ export default function VideoCall() {
         connectionRef.current = null;
         if(callData?.from) emitEndCall({ to: callData.from });
         
-        // Reset Global Store
         setCallData(null);
         setCallAccepted(false);
+        setRemoteStream(null);
         
-        // Stop Tracks
         stream?.getTracks().forEach(track => track.stop());
     };
 
