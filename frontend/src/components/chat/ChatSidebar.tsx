@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bell, MoreVertical, ChevronDown, Search, Edit2, LogOut } from 'lucide-react';
 import { getRoomName, getRoomAvatar, isUserOnline } from '../../lib/chatUtils';
 

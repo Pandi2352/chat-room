@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, UserPlus, Heart, Ban, LogOut, Phone, MessageSquare, Search } from 'lucide-react';
 import { getRoomName, getRoomAvatar, getOtherParticipant } from '../../lib/chatUtils';
 
