@@ -12,13 +12,16 @@ export class RoomsService {
             type: 'private',
             participants: { $all: [user1, user2] },
         });
-        if (existingRoom) return existingRoom;
+        if (existingRoom) {
+            return await existingRoom.populate('participants', 'displayName avatarUrl email status phone address location about');
+        }
 
         const newRoom = new this.roomModel({
             type: 'private',
             participants: [user1, user2],
         });
-        return newRoom.save();
+        const savedRoom = await newRoom.save();
+        return await savedRoom.populate('participants', 'displayName avatarUrl email status phone address location about');
     }
 
     async getRoomsForUser(userId: string): Promise<RoomDocument[]> {
