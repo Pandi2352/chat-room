@@ -129,13 +129,20 @@ export default function VideoCall() {
 
     // INCOMING CALL: Answer
     const answerCall = () => {
+        if (!stream) {
+            console.error("Stream not ready yet");
+            return; 
+        }
+
         setCallAccepted(true);
         const peer = new RTCPeerConnection(ICE_SERVERS);
         connectionRef.current = peer;
 
-        if (stream) {
-             stream.getTracks().forEach(track => peer.addTrack(track, stream));
-        }
+        // Add Tracks
+        stream.getTracks().forEach(track => {
+            console.log("Adding track (Receiver)", track.kind);
+            peer.addTrack(track, stream);
+        });
 
         peer.onicecandidate = (event) => {
             if (event.candidate) {
@@ -144,7 +151,7 @@ export default function VideoCall() {
         };
 
         peer.ontrack = (event) => {
-            console.log("Track received", event.streams[0]);
+            console.log("Track received (Receiver)", event.streams[0]);
             if (userVideo.current) {
                 userVideo.current.srcObject = event.streams[0];
             }
@@ -242,7 +249,7 @@ export default function VideoCall() {
                              <button onClick={endCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110">
                                  <PhoneOff size={32} />
                              </button>
-                             <button onClick={answerCall} className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center text-white shadow-lg animate-bounce transition-transform hover:scale-110">
+                             <button onClick={answerCall} disabled={!stream} className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce transition-transform hover:scale-110 ${!stream ? 'bg-emerald-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
                                  <Phone size={32} />
                              </button>
                         </div>
