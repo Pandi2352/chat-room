@@ -88,6 +88,7 @@ export default function ChatPage() {
   };
 
   const startChat = async (targetUser: any) => {
+    try {
       const res = await apiClient.post('/rooms', { targetUserId: targetUser._id });
       await fetchRooms();
       setActiveRoom(res.data); 
