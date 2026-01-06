@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Upload, Loader2 } from 'lucide-react'; // Added icons
+import apiClient from '../../lib/apiClient';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -9,12 +10,15 @@ interface EditProfileModalProps {
 }
 
 export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: EditProfileModalProps) {
+    // const fileInputRef = useRef<HTMLInputElement>(null); // Removed: using htmlFor
+    const [isUploading, setIsUploading] = useState(false);
     const [formData, setFormData] = useState({
         displayName: '',
         phone: '',
         location: '',
         address: '',
-        about: ''
+        about: '',
+        avatarUrl: ''
     });
 
     useEffect(() => {
@@ -24,7 +28,8 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                 phone: user.phone || '',
                 location: user.location || '',
                 address: user.address || '',
-                about: user.about || ''
+                about: user.about || '',
+                avatarUrl: user.avatarUrl || ''
             });
         }
     }, [isOpen, user]);
@@ -33,6 +38,35 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
         e.preventDefault();
         await onUpdate(formData);
         onClose();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+
+        setIsUploading(true);
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+
+        try {
+            const res = await apiClient.post('/files/upload', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            // Construct full URL if response is relative path, or use as is if logic handles it
+            // Backend seems to return { path: '/uploads/...' }
+            const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${res.data.path}`;
+            setFormData(prev => ({ ...prev, avatarUrl: fullUrl }));
+        } catch (error) {
+            console.error('Upload failed', error);
+            alert('Failed to upload image');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -53,10 +87,46 @@ export default function EditProfileModal({ isOpen, onClose, user, onUpdate }: Ed
                     
                     {/* Avatar Preview */}
                     <div className="flex flex-col items-center mb-6">
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-3xl font-bold mb-3 shadow-lg ring-4 ring-indigo-50">
-                            {user?.displayName?.[0]}
-                        </div>
-                        <button type="button" className="text-sm text-indigo-600 font-medium hover:text-indigo-700">Change Photo</button>
+                        <label 
+                            htmlFor="avatar-upload" 
+                            className="relative group cursor-pointer block"
+                        >
+                            <div className="w-24 h-24 rounded-full bg-slate-100 border-4 border-white shadow-xl overflow-hidden flex items-center justify-center relative z-0">
+                                {formData.avatarUrl ? (
+                                    <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white">
+                                        {formData.displayName?.[0]}
+                                    </div>
+                                )}
+                                
+                                {/* Overlay */}
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full z-10">
+                                    <Upload className="text-white" size={24} />
+                                </div>
+                            </div>
+                            
+                            {isUploading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-full z-20">
+                                    <Loader2 className="animate-spin text-indigo-600" size={24} />
+                                </div>
+                            )}
+                        </label>
+                        
+                        <label 
+                            htmlFor="avatar-upload" 
+                            className="mt-3 text-sm text-indigo-600 font-bold hover:text-indigo-700 cursor-pointer"
+                        >
+                            Change Photo
+                        </label>
+                        
+                        <input 
+                            id="avatar-upload"
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

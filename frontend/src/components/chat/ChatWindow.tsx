@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
     Send, Phone, Video, MoreVertical, Search, 
     Paperclip, Smile, Image as ImageIcon, Check, CheckCheck, Download 
 } from 'lucide-react';
+import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { getRoomName, getRoomAvatar, getOtherParticipant, isUserOnline } from '../../lib/chatUtils';
 
 interface ChatWindowProps {
@@ -10,7 +11,7 @@ interface ChatWindowProps {
     user: any;
     messages: any[];
     msgInput: string;
-    setMsgInput: (val: string) => void;
+    setMsgInput: (val: React.SetStateAction<string>) => void;
     sendMessage: (content: string) => void;
     sendTyping: (isTyping: boolean) => void;
     uploadFile: (file: File) => void;
@@ -29,6 +30,7 @@ export default function ChatWindow({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const [showPicker, setShowPicker] = useState(false);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -41,6 +43,7 @@ export default function ChatWindow({
         sendMessage(msgInput);
         setMsgInput('');
         sendTyping(false);
+        setShowPicker(false);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -51,9 +54,15 @@ export default function ChatWindow({
                 sendMessage(msgInput);
                 setMsgInput('');
                 sendTyping(false);
+                setShowPicker(false);
             }
         }
     }
+    
+    const onEmojiClick = (emojiData: any) => {
+        setMsgInput((prev) => prev + emojiData.emoji);
+        // keep picker open
+    };
 
     if (!activeRoom) {
          return (
@@ -236,9 +245,32 @@ export default function ChatWindow({
                             className="flex-1 bg-transparent border-none outline-none text-slate-700 placeholder-slate-400 font-medium h-10 text-[15px]"
                         />
 
-                        <button type="button" className="p-2 text-slate-400 hover:text-yellow-500 transition-colors hover:bg-yellow-50 rounded-xl active:scale-95">
-                            <Smile size={22} strokeWidth={2} />
-                        </button>
+                        <div className="relative">
+                            <button 
+                                type="button" 
+                                onClick={() => setShowPicker(!showPicker)}
+                                className={`p-2 transition-colors rounded-xl active:scale-95 ${showPicker ? 'text-yellow-500 bg-yellow-50' : 'text-slate-400 hover:text-yellow-500 hover:bg-yellow-50'}`}
+                            >
+                                <Smile size={22} strokeWidth={2} />
+                            </button>
+                            
+                            {showPicker && (
+                                <div className="absolute bottom-16 right-0 z-50">
+                                    <div className="shadow-2xl rounded-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+                                        <EmojiPicker 
+                                            onEmojiClick={onEmojiClick}
+                                            autoFocusSearch={false}
+                                            width={350}
+                                            height={450}
+                                            searchDisabled={false}
+                                            skinTonesDisabled={false}
+                                            emojiStyle={EmojiStyle.APPLE}
+                                            lazyLoadEmojis={true}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <button 
                             type="submit" 
