@@ -51,20 +51,36 @@ export default function VideoCall() {
     }, [callData, callAccepted]);
 
 
-    // Handle Call Logic
+    const iceCandidatesQueue = useRef<any[]>([]);
+
+    // Handle Call Logic (Signaling Listeners)
     useEffect(() => {
-        if (!stream || !socket) return;
+        if (!socket) return;
         
-        // Setup socket listeners for SIGNALING inside the component to access peer
         const handleIceCandidateIncoming = (candidate: any) => {
-            connectionRef.current?.addIceCandidate(new RTCIceCandidate(candidate))
-                .catch(e => console.error("Error adding ice candidate", e));
+            if (connectionRef.current && connectionRef.current.remoteDescription) {
+                connectionRef.current.addIceCandidate(new RTCIceCandidate(candidate))
+                    .catch(e => console.error("Error adding ice candidate", e));
+            } else {
+                // Queue candidate if peer not ready or remote desc not set
+                iceCandidatesQueue.current.push(candidate);
+            }
         };
         
         const handleCallAccepted = (signal: any) => {
              setCallAccepted(true);
-             connectionRef.current?.setRemoteDescription(new RTCSessionDescription(signal))
-                .catch(e => console.error("Error setting remote description", e));
+             const peer = connectionRef.current;
+             if (peer) {
+                 peer.setRemoteDescription(new RTCSessionDescription(signal))
+                    .then(() => {
+                        // Flush queue
+                        iceCandidatesQueue.current.forEach(c => {
+                            peer.addIceCandidate(new RTCIceCandidate(c)).catch(e => console.error(e));
+                        });
+                        iceCandidatesQueue.current = [];
+                    })
+                    .catch(e => console.error("Error setting remote description", e));
+             }
         };
 
         socket.on('ice_candidate', handleIceCandidateIncoming);
@@ -74,13 +90,12 @@ export default function VideoCall() {
             socket.off('ice_candidate', handleIceCandidateIncoming);
             socket.off('call_accepted', handleCallAccepted);
         };
-    }, [stream, socket, setCallAccepted]);
+    }, [socket, setCallAccepted]);
 
 
     // Caller Logic
     useEffect(() => {
         const cData = callData as any;
-        // Run only if we have stream, we are NOT receiving (so we are calling), and we haven't started yet (no connection)
         if (!stream || !cData || cData.isReceivingCall || !cData.userToCall || connectionRef.current || !user) return;
 
         const peer = new RTCPeerConnection(ICE_SERVERS);
@@ -109,20 +124,19 @@ export default function VideoCall() {
                 });
             });
 
-    }, [stream, callData, user]);  // Depend on stream and callData
+    }, [stream, callData, user]);
 
 
     // INCOMING CALL: Answer
     const answerCall = () => {
         setCallAccepted(true);
         const peer = new RTCPeerConnection(ICE_SERVERS);
-        
         connectionRef.current = peer;
 
-        // Add Tracks
-        stream?.getTracks().forEach(track => peer.addTrack(track, stream));
+        if (stream) {
+             stream.getTracks().forEach(track => peer.addTrack(track, stream));
+        }
 
-        // Handle Events
         peer.onicecandidate = (event) => {
             if (event.candidate) {
                 emitIceCandidate({ to: callData?.from, candidate: event.candidate });
@@ -130,20 +144,27 @@ export default function VideoCall() {
         };
 
         peer.ontrack = (event) => {
+            console.log("Track received", event.streams[0]);
             if (userVideo.current) {
                 userVideo.current.srcObject = event.streams[0];
             }
         };
 
-        // Set Remote Desc (Offer)
-        peer.setRemoteDescription(new RTCSessionDescription(callData?.signal));
-
-        // Create Answer
-        peer.createAnswer()
+        // Chain the negotiation
+        peer.setRemoteDescription(new RTCSessionDescription(callData?.signal))
+            .then(() => {
+                // Process queued candidates
+                iceCandidatesQueue.current.forEach(c => {
+                    peer.addIceCandidate(new RTCIceCandidate(c)).catch(e => console.error(e));
+                });
+                iceCandidatesQueue.current = [];
+                return peer.createAnswer();
+            })
             .then(answer => {
                 peer.setLocalDescription(answer);
                 emitAnswerCall({ signal: answer, to: callData?.from });
-            });
+            })
+            .catch(err => console.error("Answer call failed", err));
     };
     
     // Cleanup
