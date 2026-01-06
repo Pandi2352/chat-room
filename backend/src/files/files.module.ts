@@ -20,7 +20,8 @@ import { extname } from 'path';
                 },
             }),
             fileFilter: (req, file, cb) => {
-                if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+                if (!file.mimetype.match(/^image\/(jpg|jpeg|png|gif|webp)$/i) && !file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/i)) {
+                    // Fallback loose check
                     return cb(new Error('Only image files are allowed!'), false);
                 }
                 cb(null, true);

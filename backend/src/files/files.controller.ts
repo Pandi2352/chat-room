@@ -22,6 +22,6 @@ export class FilesController {
 
     @Get(':filename')
     serveFile(@Param('filename') filename: string, @Res() res: Response) {
-        return res.sendFile(join(process.cwd(), 'uploads', filename));
+        return res.sendFile(filename, { root: join(process.cwd(), 'uploads') });
     }
 }

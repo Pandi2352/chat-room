@@ -85,9 +85,15 @@ export default function ChatSidebar({
                 {rooms.map((room) => {
                     const isActive = activeRoom?._id === room._id;
                     const name = getRoomName(room, user?._id);
-                    const avatar = getRoomAvatar(room, user?._id);
-                    const otherUser = room.participants.find((p: any) => p._id !== user?._id); // quick lookup for status
+                    // const avatar = getRoomAvatar(room, user?._id); // Replaced logic
+                    const otherUser = room.participants.find((p: any) => p._id !== user?._id); 
                     const isOnline = otherUser && isUserOnline(otherUser._id, onlineUsers);
+                    
+                    const avatarContent = otherUser?.avatarUrl ? (
+                        <img src={otherUser.avatarUrl} alt={name} className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                        getRoomAvatar(room, user?._id)
+                    );
 
                     return (
                         <div 
@@ -105,7 +111,7 @@ export default function ChatSidebar({
                                         ? 'bg-white/20 border-white/30 text-white' 
                                         : 'bg-white border-slate-100 text-slate-600'
                                 }`}>
-                                    {avatar}
+                                    {avatarContent}
                                 </div>
                                 {isOnline && (
                                     <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 rounded-full ${isActive ? 'border-indigo-600' : 'border-white'}`}></div>
@@ -135,7 +141,11 @@ export default function ChatSidebar({
                 <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onClick={onEditProfile}>
                         <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-sm relative overflow-hidden group">
-                           {user?.displayName?.[0]}
+                           {user?.avatarUrl ? (
+                               <img src={user.avatarUrl} alt="Me" className="w-full h-full object-cover" />
+                           ) : (
+                               user?.displayName?.[0]
+                           )}
                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                <Edit2 size={12} />
                            </div>

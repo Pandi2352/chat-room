@@ -95,8 +95,12 @@ export default function ChatWindow({
             <div className="h-20 px-6 flex justify-between items-center bg-white/70 backdrop-blur-xl border-b border-indigo-50/50 z-20 sticky top-0 shadow-sm shadow-indigo-100/10">
                 <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-all duration-300 group" onClick={onToggleProfile}>
                     <div className="relative">
-                        <div className="w-11 h-11 rounded-[14px] bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-all duration-300 ring-4 ring-white">
-                            {avatar}
+                        <div className="w-11 h-11 rounded-[14px] bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-all duration-300 ring-4 ring-white overflow-hidden">
+                             {otherParticipant?.avatarUrl ? (
+                                <img src={otherParticipant.avatarUrl} alt={roomName} className="w-full h-full object-cover" />
+                             ) : (
+                                avatar
+                             )}
                         </div>
                         {isOnline && (
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-[3px] border-white rounded-full shadow-sm"></div>
@@ -142,14 +146,19 @@ export default function ChatWindow({
                     const isMine = msg.senderId === user?._id;
                     const prevMsg = messages[idx - 1];
                     const isSequence = prevMsg && prevMsg.senderId === msg.senderId;
+                    const sender = activeRoom?.participants?.find((p: any) => p._id === msg.senderId);
 
                     return (
                         <div key={msg._id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} group ${isSequence ? 'mt-1' : 'mt-5'} animate-in slide-in-from-bottom-2 duration-300`}>
                             
                             {/* Avatar for Them */}
                             {!isMine && !isSequence && (
-                                <div className="w-8 h-8 rounded-[10px] bg-white border border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 mr-3 self-end shadow-sm mb-1 ring-2 ring-slate-50">
-                                    {getRoomAvatar(activeRoom, user?._id)[0]}
+                                <div className="w-8 h-8 rounded-[10px] bg-white border border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 mr-3 self-end shadow-sm mb-1 ring-2 ring-slate-50 overflow-hidden">
+                                     {sender?.avatarUrl ? (
+                                        <img src={sender.avatarUrl} alt="User" className="w-full h-full object-cover" />
+                                     ) : (
+                                        getRoomAvatar(activeRoom, user?._id)[0]
+                                     )}
                                 </div>
                             )}
                             {!isMine && isSequence && <div className="w-11 mr-0"></div>}
